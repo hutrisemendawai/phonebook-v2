@@ -1,0 +1,50 @@
+id,name,region,subregion,ext_code
+1,CPI Ancol,DKI Jakarta,Ancol,210
+2,PFM Ancol,DKI Jakarta,Ancol,211
+3,Feedmill Medan,Sumbagut,Medan,619
+4,Food Medan,Sumbagut,Medan,618
+5,SHS Medan,Sumbagut,Medan,617
+6,Feedmill Padang,Sumbagut,Padang,751
+7,VAK Palembang,Sumbagsel,Palembang,711
+8,SUM Jambi,Sumbagsel,Jambi,712
+9,SMS Palembang,Sumbagsel,Palembang,712
+10,Feedmill Lampung,Sumbagsel,Lampung,721
+11,Silo Lampung,Sumbagsel,Lampung,722
+12,Feedmill Balaraja,Banten,Balaraja,251
+13,Food Cikande Plant 3,Banten,Cikande,252
+14,Cikande Bebek,Banten,Cikande,253
+15,Fleksible Packaging Cikande,Banten,Cikande,254
+16,Food Cikande Plant 1,Banten,Cikande,255
+17,Cikande PE,Banten,Cikande,256
+18,Food Cicalengka,Jawa Barat,Cicalengka,220
+19,Food Majalengka,Jawa Barat,Majalengka,233
+20,SMI Bandung,Jawa Barat,Bandung,228
+21,MSI Kopo,Jawa Barat,Kopo,221
+22,SHS int Batununggal,Jawa Barat,Batununggal,222
+23,SUM Subang,Jawa Barat,Subang,260
+24,Feedmill Cirebon,Jawa Barat,Cirebon,231
+25,CPI Banyumas,Jawa Tengah,Banyumas,281
+26,CPI Pekalongan,Jawa Tengah,Pekalongan,285
+27,RPHU Kebumen,Jawa Tengah,Kebumen,287
+28,CPJF Kendal,Jawa Tengah,Kendal,294
+29,SMI Semarang,Jawa Tengah,Semarang,241
+30,Feedmill Genuk KM8,Jawa Tengah,Genuk,249
+31,Feedmill Sayung KM9,Jawa Tengah,Demak,240
+32,Food Salatiga,Jawa Tengah,Salatiga,298
+33,RPHU Sragen,Jawa Tengah,Sragen,271
+34,RPHU Pemalang,Jawa Tengah,Pemalang,284
+35,CPI Madiun,Jawa Timur,Madiun,322
+36,Food Ngoro Mojokerto,Jawa Timur,Ngoro,321
+37,BISI Sepanjang Surabaya,Jawa Timur,Sepanjang,319
+38,CPI Berbek Sidoarjo,Jawa Timur,Berbek,318
+39,SMI Pandaan Pasuruan,Jawa Timur,Pasuruan,343
+40,CPI Bondowoso,Jawa Timur,Bondowoso,341
+41,SMS Surabaya,Jawa Timur,Surabaya,323
+42,CPI Sepanjang,Jawa Timur,Sepanjang,312
+43,MSJ Denpasar,Eastern,Denpasar,367
+44,Food Tabanan,Eastern,Tabanan,361
+45,KPS Bali,Eastern,Denpasar,362
+46,CPI Bima,Eastern,Bima,374
+47,Feedmill Makassar,Eastern,Makassar,411
+48,CPI Samarinda,Eastern,Samarinda,541
+49,CPJF Tarakan,Eastern,Tarakan,551
