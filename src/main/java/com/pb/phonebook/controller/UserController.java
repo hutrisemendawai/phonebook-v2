@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 import com.pb.phonebook.dto.ImportResultDto;
 import com.pb.phonebook.dto.LocationDto;
 import com.pb.phonebook.dto.UserDto;
@@ -69,7 +71,8 @@ public class UserController {
             @RequestParam(defaultValue = "location") String sortField,
             @RequestParam(defaultValue = "asc") String sortDir,
             @RequestParam(defaultValue = "1") int page,
-            Model model) {
+            Model model,
+            HttpServletRequest request) {
 
         model.addAttribute("subregions", locationRepository.findDistinctSubregions());
 
@@ -114,7 +117,13 @@ public class UserController {
         model.addAttribute("startPage", startPage);
         model.addAttribute("endPage", endPage);
 
-        return "users/list";
+        // AJAX (fetch): kembalikan hanya fragment hasil, bukan halaman penuh.
+        // Header "X-Requested-With: fetch" dikirim dari JS frontend; "HX-Request"
+        // didukung juga kalau nanti memakai htmx.
+        boolean fragmentRequest = "fetch".equalsIgnoreCase(request.getHeader("X-Requested-With"))
+                || request.getHeader("HX-Request") != null;
+
+        return fragmentRequest ? "users/list :: usersResults" : "users/list";
     }
 
     @GetMapping("/new")

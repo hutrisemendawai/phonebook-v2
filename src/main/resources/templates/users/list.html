@@ -63,8 +63,8 @@
                 <!-- Form Filter & Search -->
                 <form class="d-flex gap-2 align-items-center" th:action="@{/users}" method="get">
                     <!-- Pertahankan status sorting saat user submit form filter -->
-                    <input type="hidden" name="sortField" th:value="${sortField}">
-                    <input type="hidden" name="sortDir" th:value="${sortDir}">
+                    <input type="hidden" id="sortFieldInput" name="sortField" th:value="${sortField}">
+                    <input type="hidden" id="sortDirInput" name="sortDir" th:value="${sortDir}">
 
                     <!-- Dropdown for filtering by subregion -->
                     <select class="form-select flex-shrink-0" id="filterSubregion" name="subregion"
@@ -85,8 +85,8 @@
                     </select>
 
                     <!-- Input keyword -->
-                    <input class="form-control flex-shrink-0" type="search" name="keyword" th:value="${keyword}"
-                        placeholder="Silahkan cari User nya..." style="width: 230px;">
+                    <input class="form-control flex-shrink-0" type="search" id="keywordInput" name="keyword"
+                        th:value="${keyword}" placeholder="Silahkan cari User nya..." style="width: 230px;">
 
                     <button class="btn btn-outline-primary text-nowrap flex-shrink-0" type="submit">Filter</button>
                     <a th:href="@{/users}" class="btn btn-outline-secondary text-nowrap flex-shrink-0"
@@ -119,7 +119,13 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <div class="card shadow-sm">
+        <!-- Indikator loading ringan, ditampilkan saat fetch berlangsung -->
+        <div id="loadingIndicator" class="text-center py-3 d-none">
+            <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
+            <span class="ms-2 text-muted">Memuat data...</span>
+        </div>
+
+        <div class="card shadow-sm" id="usersResults" th:fragment="usersResults">
             <div class="card-body p-0">
                 <table class="table table-striped table-hover align-middle mb-0">
                     <thead class="table-light text-nowrap">
@@ -268,44 +274,184 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const keywordInput = document.getElementById("keywordInput");
             const subregionSelect = document.getElementById("filterSubregion");
             const locationSelect = document.getElementById("filterLocation");
+            const sortFieldInput = document.getElementById("sortFieldInput");
+            const sortDirInput = document.getElementById("sortDirInput");
+            const loadingIndicator = document.getElementById("loadingIndicator");
 
-            if (!subregionSelect || !locationSelect) return;
+            let resultsContainer = document.getElementById("usersResults");
+            if (!resultsContainer) return;
 
-            subregionSelect.addEventListener("change", function () {
-                const subregion = this.value;
-                const currentLocationId = locationSelect.value;
+            let currentController = null;
 
-                // Reset dropdown location
-                locationSelect.innerHTML = '<option value="">-- Semua Lokasi --</option>';
+            function showLoading() {
+                if (loadingIndicator) loadingIndicator.classList.remove("d-none");
+            }
 
-                // Ambil lokasi berdasarkan subregion jika subregion dipilih, atau semua lokasi jika tidak
+            function hideLoading() {
+                if (loadingIndicator) loadingIndicator.classList.add("d-none");
+            }
+
+            // Kumpulkan parameter filter terkini dari form, selalu reset ke halaman pertama.
+            function collectParams() {
+                const params = new URLSearchParams();
+                const keyword = keywordInput ? keywordInput.value.trim() : "";
+                const subregion = subregionSelect ? subregionSelect.value : "";
+                const locationId = locationSelect ? locationSelect.value : "";
+                const sortField = sortFieldInput ? sortFieldInput.value : "location";
+                const sortDir = sortDirInput ? sortDirInput.value : "asc";
+
+                if (keyword) params.set("keyword", keyword);
+                if (subregion) params.set("subregion", subregion);
+                if (locationId) params.set("locationId", locationId);
+                params.set("sortField", sortField);
+                params.set("sortDir", sortDir);
+                params.set("page", "1");
+
+                return params;
+            }
+
+            // Muat ulang opsi lokasi sesuai subregion (selectedLocationId opsional).
+            function reloadLocations(subregion, selectedLocationId) {
+                if (!locationSelect) return;
+                locationSelect.innerHTML = '<option value="">Semua Lokasi</option>';
+
                 const url = subregion
                     ? "/users/locations-by-subregion?subregion=" + encodeURIComponent(subregion)
                     : "/users/locations-by-subregion";
 
                 fetch(url)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error("Gagal mengambil data lokasi");
-                        }
+                    .then(function (response) {
+                        if (!response.ok) throw new Error("Gagal mengambil data lokasi");
                         return response.json();
                     })
-                    .then(data => {
-                        data.forEach(loc => {
+                    .then(function (data) {
+                        data.forEach(function (loc) {
                             const opt = document.createElement("option");
                             opt.value = loc.id;
                             opt.textContent = loc.name;
-                            if (currentLocationId && String(loc.id) === String(currentLocationId)) {
+                            if (selectedLocationId && String(loc.id) === String(selectedLocationId)) {
                                 opt.selected = true;
                             }
                             locationSelect.appendChild(opt);
                         });
                     })
-                    .catch(err => {
-                        console.error("Error fetching locations: ", err);
+                    .catch(function (err) {
+                        console.error("Error fetching locations:", err);
                     });
+            }
+
+            // Ambil hasil & ganti area hasil. Abort request lama supaya tidak menimpa.
+            function fetchResults(params, opts) {
+                opts = opts || {};
+                const pushHistory = opts.push !== false;
+
+                if (currentController) currentController.abort();
+                const controller = new AbortController();
+                currentController = controller;
+
+                showLoading();
+                const url = "/users?" + params.toString();
+
+                fetch(url, {
+                    headers: { "X-Requested-With": "fetch" },
+                    signal: controller.signal
+                })
+                    .then(function (response) {
+                        if (!response.ok) throw new Error("HTTP " + response.status);
+                        return response.text();
+                    })
+                    .then(function (html) {
+                        if (currentController !== controller) return;
+                        resultsContainer.outerHTML = html;
+                        resultsContainer = document.getElementById("usersResults");
+                        if (pushHistory) {
+                            history.pushState({}, "", url);
+                        }
+                    })
+                    .catch(function (err) {
+                        if (err.name === "AbortError") return;
+                        console.error("Error loading results:", err);
+                    })
+                    .finally(function () {
+                        if (currentController === controller) {
+                            hideLoading();
+                        }
+                    });
+            }
+
+            // Debounce sederhana (ms).
+            function debounce(fn, delay) {
+                let timer = null;
+                return function () {
+                    const args = arguments;
+                    clearTimeout(timer);
+                    timer = setTimeout(function () { fn.apply(null, args); }, delay);
+                };
+            }
+
+            // --- Event listeners ---
+
+            if (keywordInput) {
+                keywordInput.addEventListener("input", debounce(function () {
+                    fetchResults(collectParams(), { push: true });
+                }, 300));
+            }
+
+            if (subregionSelect) {
+                subregionSelect.addEventListener("change", function () {
+                    // Reset lokasi ke "Semua Lokasi" saat subregion berganti.
+                    if (locationSelect) locationSelect.value = "";
+                    reloadLocations(this.value, null);
+                    fetchResults(collectParams(), { push: true });
+                });
+            }
+
+            if (locationSelect) {
+                locationSelect.addEventListener("change", function () {
+                    fetchResults(collectParams(), { push: true });
+                });
+            }
+
+            // Sort & pagination: tangani klik link di dalam area hasil (pathname tepat "/users").
+            document.addEventListener("click", function (e) {
+                const link = e.target.closest("a[href]");
+                if (!link || !resultsContainer || !resultsContainer.contains(link)) return;
+
+                const url = new URL(link.href, window.location.origin);
+                if (url.pathname !== "/users") return;
+
+                e.preventDefault();
+
+                const linkParams = new URLSearchParams(url.search);
+                const params = collectParams();
+
+                if (linkParams.has("sortField")) params.set("sortField", linkParams.get("sortField"));
+                if (linkParams.has("sortDir")) params.set("sortDir", linkParams.get("sortDir"));
+                if (linkParams.has("page")) params.set("page", linkParams.get("page"));
+
+                if (sortFieldInput) sortFieldInput.value = params.get("sortField");
+                if (sortDirInput) sortDirInput.value = params.get("sortDir");
+
+                fetchResults(params, { push: true });
+            });
+
+            // Back/forward: muat ulang hasil sesuai URL tanpa push history lagi.
+            window.addEventListener("popstate", function () {
+                const params = new URLSearchParams(window.location.search);
+
+                if (keywordInput) keywordInput.value = params.get("keyword") || "";
+                const subregion = params.get("subregion") || "";
+                const locationId = params.get("locationId") || "";
+
+                if (subregionSelect) subregionSelect.value = subregion;
+                if (sortFieldInput) sortFieldInput.value = params.get("sortField") || "location";
+                if (sortDirInput) sortDirInput.value = params.get("sortDir") || "asc";
+
+                reloadLocations(subregion, locationId);
+                fetchResults(params, { push: false });
             });
         });
     </script>
